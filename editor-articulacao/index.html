@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <script src="silegismg-editor-articulacao-plain-js-polyfill.js"></script>
+    <title>Demonstração do editor de articulação</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        #articulacao {
+            /*position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 10em;*/
+            flex-grow: 1;
+            overflow: auto;
+        }
+
+        .tecnico {
+            display: none;
+        }
+
+        body.mostrar-tecnico .tecnico {
+            display: block;
+        }
+
+        #lexml {
+            /*position: fixed;
+            bottom: 0;*/
+            height: 10em;
+            left: 0;
+            right: 0;
+            overflow: auto;
+            background: #ccc;
+            margin: 0;
+        }
+
+        #contexto {
+            position: fixed;
+            top: 3.8em;
+            right: 0;
+            background: black;
+            box-shadow: 0px 0px 20px gray;
+            margin: 0;
+            opacity: .3;
+            font-size: 75%;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Painel informativo, com dados do contexto de edição (para desenvolvedores) -->
+    <pre id="contexto" class="tecnico"></pre>
+
+    <!-- Elemento que será transformado no editor de articulação -->
+    <div id="articulacao"></div>
+    
+    <!-- Resultado final, em LexML -->
+    <pre id="lexml" onclick="javascript:mostrarLexML()" class="tecnico">
+        Clique aqui para atualizar o lexml.
+    </pre>
+
+    <!-- Botão apenas para exemplificar obtenção de dados -->
+    <button id="importarConstituicao" style="position: fixed; bottom: 1ex; right: 1ex;">Importar LexML da Constituição Federal</button>
+
+
+    <script>
+        // Transforma o elemento com id="articulacao" em um editor de articulação, salvando o controlador na variável ctrl.
+        var componente = silegismgEditorArticulacao(document.getElementById('articulacao'), {
+            // Define-se a formatação no padrão federal, visto que a omissão da opção faz o editor trabalhar com o padrão de Minas Gerais.
+            rotulo: {
+                separadorArtigo: '',
+                separadorArtigoSemOrdinal: '.',
+                separadorParagrafo: '',
+                separadorParagrafoSemOrdinal: '.'
+            }
+        });
+
+        var ctrl = componente.ctrl;
+
+        // O controlador ctrl também está disponível em document.getElementById('articulacao').componenteEdicao.ctrlArticulacao.
+    </script>
+
+    <script>
+        function mostrarLexML() {
+            lexml.textContent = !ctrl.vazio ? ctrl.lexmlString.replace(/(<\/.+?>)/g, '$1\n') : '';
+        }
+
+        document.getElementById('articulacao').addEventListener('contexto', function (evento) {
+            // Apenas para fins demonstrativos, exibe-se o conteúdo do JSON do contexto no elemento de id="contexto".
+            try {
+                document.getElementById('contexto').innerText = 'Permissões: ' + JSON.stringify(evento.detail.permissoes, null, 4) + '\nCursor: ' + JSON.stringify(evento.detail.cursor, null, 4);
+            } catch (e) {
+                document.getElementById('contexto').innerText = '';
+            }
+        });
+
+        // Quando houver alteração na articulação, exibe-se o LexML.
+        document.getElementById('articulacao').addEventListener('change', mostrarLexML);
+
+        importarConstituicao.onclick = function () {
+            var req = new XMLHttpRequest();
+            req.onload = function() {
+                var lexml = this.responseText;
+                var articulacao = /<Articulacao>([\s\S]*)<\/Articulacao>/.exec(lexml)[1]; // Obtém apenas a tag articulacao
+
+                ctrl.lexmlString = articulacao;
+            };
+            req.open('get', 'https://raw.githubusercontent.com/lexml/lexml-xml-samples/master/LexML/CON1988--20150303.LexML.xml', true);
+            req.send();
+        }
+
+        articulacao.focus();
+    </script>
+</body>
+
+</html>
